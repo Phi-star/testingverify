@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobalSMS Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --border: #1e1e2e;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --green: #00ff88;
+    --red: #ff4466;
+    --text: #e0e0f0;
+    --muted: #555570;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .header {
+    text-align: center;
+    padding: 30px 0 20px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 30px;
+  }
+
+  .header h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.8rem;
+    color: var(--accent);
+    letter-spacing: -1px;
+  }
+
+  .header p {
+    color: var(--muted);
+    font-size: 0.75rem;
+    margin-top: 6px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+
+  .card h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 14px;
+  }
+
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  label {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  input, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  input:focus, select:focus {
+    border-color: var(--accent);
+  }
+
+  input[type="password"] {
+    letter-spacing: 2px;
+  }
+
+  btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #000;
+  }
+
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+
+  .btn-secondary:hover { background: rgba(0,229,255,0.08); }
+  .btn-secondary:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-orange {
+    background: var(--accent2);
+    color: #fff;
+  }
+
+  .btn-orange:hover { opacity: 0.85; }
+  .btn-orange:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    margin-bottom: 12px;
+  }
+
+  .status.success { background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); color: var(--green); }
+  .status.error { background: rgba(255,68,102,0.1); border: 1px solid rgba(255,68,102,0.3); color: var(--red); }
+  .status.info { background: rgba(0,229,255,0.08); border: 1px solid rgba(0,229,255,0.2); color: var(--accent); }
+  .status.loading { background: rgba(255,107,53,0.08); border: 1px solid rgba(255,107,53,0.2); color: var(--accent2); }
+
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot.red { background: var(--red); }
+  .dot.blue { background: var(--accent); animation: pulse 1.5s infinite; }
+  .dot.orange { background: var(--accent2); animation: pulse 1.5s infinite; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .token-display {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 0.65rem;
+    color: var(--muted);
+    word-break: break-all;
+    line-height: 1.5;
+    max-height: 60px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .token-display::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 20px;
+    background: linear-gradient(transparent, var(--bg));
+  }
+
+  .results-area {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .app-item {
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .app-item:last-child { border-bottom: none; }
+
+  .app-name {
+    font-size: 0.8rem;
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  .app-uuid {
+    font-size: 0.6rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .price-tag {
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .price-sms {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--green);
+  }
+
+  .price-did {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .badge-us { background: rgba(0,229,255,0.15); color: var(--accent); }
+  .badge-ca { background: rgba(255,107,53,0.15); color: var(--accent2); }
+
+  .section-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin: 12px 0 6px;
+  }
+
+  .raw-json {
+    font-size: 0.65rem;
+    color: #7070a0;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  .tab-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+  }
+
+  .tab {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    background: transparent;
+    width: auto;
+    margin-bottom: 0;
+    text-transform: none;
+    letter-spacing: 0;
+  }
+
+  .tab.active {
+    background: rgba(0,229,255,0.1);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .balance-display {
+    text-align: center;
+    padding: 16px;
+    background: var(--bg);
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+
+  .balance-amount {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--green);
+  }
+
+  .balance-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .filter-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  .filter-row input {
+    flex: 1;
+  }
+
+  .filter-row select {
+    width: 100px;
+    flex-shrink: 0;
+  }
+
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .hidden { display: none !important; }
+
+  .spinner {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .count-badge {
+    display: inline-block;
+    background: rgba(0,229,255,0.15);
+    color: var(--accent);
+    border-radius: 20px;
+    padding: 1px 8px;
+    font-size: 0.65rem;
+    margin-left: 6px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ GlobalSMS Explorer</h1>
+  <p>Login · Check Prices · Browse Numbers</p>
+</div>
+
+<!-- LOGIN CARD -->
+<div class="card" id="loginCard">
+  <h2>🔐 Login</h2>
+  <div id="loginStatus" class="status info hidden">
+    <div class="dot blue"></div>
+    <span id="loginStatusText"></span>
+  </div>
+  <div class="form-group">
+    <label>Email</label>
+    <input type="email" id="emailInput" placeholder="your@email.com" />
+  </div>
+  <div class="form-group">
+    <label>Password</label>
+    <input type="password" id="passwordInput" placeholder="••••••••" />
+  </div>
+  <button class="btn-primary" id="loginBtn" onclick="doLogin()">Login & Get Token</button>
+
+  <div id="tokenSection" class="hidden">
+    <div class="status success">
+      <div class="dot green"></div>
+      <span>Logged in successfully</span>
+    </div>
+    <div class="section-label">Token (truncated)</div>
+    <div class="token-display" id="tokenDisplay"></div>
+  </div>
+</div>
+
+<!-- MAIN EXPLORER (hidden until logged in) -->
+<div id="mainExplorer" class="hidden">
+
+  <!-- BALANCE -->
+  <div class="card">
+    <h2>💰 Account Balance</h2>
+    <div id="balanceArea">
+      <button class="btn-secondary" onclick="fetchBalance()">Check Balance</button>
+    </div>
+  </div>
+
+  <!-- PRICES / APPS -->
+  <div class="card">
+    <h2>📋 Apps & Pricing</h2>
+
+    <div class="tab-row">
+      <button class="tab active" onclick="switchTab('apps')">All Apps</button>
+      <button class="tab" onclick="switchTab('vendors')">Vendors</button>
+      <button class="tab" onclick="switchTab('raw')">Raw JSON</button>
+    </div>
+
+    <div class="tab-content active" id="tab-apps">
+      <div class="filter-row">
+        <input type="text" id="searchInput" placeholder="Search app..." oninput="filterApps()" />
+        <select id="countryFilter" onchange="filterApps()">
+          <option value="">All</option>
+          <option value="US">🇺🇸 US</option>
+          <option value="CA">🇨🇦 CA</option>
+        </select>
+      </div>
+      <button class="btn-primary" onclick="fetchApps()" id="fetchAppsBtn">Load Apps & Prices</button>
+      <div id="appsStatus" class="status info hidden">
+        <div class="dot blue"></div>
+        <span id="appsStatusText"></span>
+      </div>
+      <div id="appsResults" class="results-area hidden"></div>
+    </div>
+
+    <div class="tab-content" id="tab-vendors">
+      <button class="btn-secondary" onclick="fetchVendors()" id="fetchVendorsBtn">Load Vendors</button>
+      <div id="vendorsResults" class="results-area hidden" style="margin-top:10px;"></div>
+    </div>
+
+    <div class="tab-content" id="tab-raw">
+      <div id="rawResults" class="results-area hidden">
+        <pre class="raw-json" id="rawJson"></pre>
+      </div>
+      <div id="rawEmpty" style="color:var(--muted);font-size:0.75rem;">Load Apps first to see raw JSON</div>
+    </div>
+  </div>
+
+  <!-- NUMBER AVAILABILITY -->
+  <div class="card">
+    <h2>🔍 Check Number Availability</h2>
+    <div class="form-group">
+      <label>App UUID</label>
+      <input type="text" id="appUuidInput" placeholder="Paste app_uuid here" />
+    </div>
+    <div class="form-group">
+      <label>Country</label>
+      <select id="checkCountry">
+        <option value="US">🇺🇸 United States</option>
+        <option value="CA">🇨🇦 Canada</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Pay Method</label>
+      <select id="checkPayMethod">
+        <option value="pay_per_sms">Pay Per Activation (SMS)</option>
+        <option value="pay_per_did">Pay Per DID (10 days)</option>
+      </select>
+    </div>
+    <button class="btn-orange" onclick="checkAvailability()">Check Availability & Price</button>
+    <div id="availResults" style="margin-top:10px;"></div>
+  </div>
+
+</div>
+
+<script>
+  const BASE = 'https://api.globalsms.io';
+  let TOKEN = '';
+  let allAppsData = [];
+
+  const PROXIES = [
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://proxy.cors.sh/${url}`,
+    url => `https://thingproxy.freeboard.io/fetch/${url}`,
+  ];
+
+  async function proxyFetch(path, options = {}) {
+    const fullUrl = BASE + path;
+    let lastErr = null;
+    for (const makeUrl of PROXIES) {
+      try {
+        const res = await fetch(makeUrl(fullUrl), {
+          ...options,
+          headers: {
+            ...(options.headers || {}),
+          }
+        });
+        if (res.ok) return res;
+        // try next if not ok
+      } catch (e) {
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error('All proxies failed');
+  }
+
+  function setStatus(elId, type, text) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    el.className = 'status ' + type;
+    el.classList.remove('hidden');
+    const icons = { success: 'green', error: 'red', loading: 'orange', info: 'blue' };
+    const spin = type === 'loading' ? '<span class="spinner"></span>' : `<div class="dot ${icons[type]}"></div>`;
+    el.innerHTML = spin + `<span>${text}</span>`;
+  }
+
+  function handleToken(token, method) {
+    TOKEN = token;
+    document.getElementById('tokenDisplay').textContent = TOKEN.substring(0, 80) + '...';
+    document.getElementById('tokenSection').classList.remove('hidden');
+    setStatus('loginStatus', 'success', `Logged in via ${method}!`);
+    document.getElementById('mainExplorer').classList.remove('hidden');
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('emailInput').value.trim();
+    const pass = document.getElementById('passwordInput').value.trim();
+    if (!email || !pass) { setStatus('loginStatus', 'error', 'Enter email and password'); return; }
+
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+
+    // --- Method 1: POST JSON to /api/auth/login (direct, no proxy body stripping) ---
+    setStatus('loginStatus', 'loading', 'Trying POST login...');
+    try {
+      const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.globalsms.io/api/auth/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'accept': '*/*' },
+        body: JSON.stringify({ email: email, password: pass })
+      });
+      const text = await res.text();
+      const data = JSON.parse(text);
+      if (data?.data?.access) { handleToken(data.data.access, 'POST /api/auth/login'); btn.disabled = false; return; }
+      if (data?.access) { handleToken(data.access, 'POST /api/auth/login'); btn.disabled = false; return; }
+      if (data?.message && !data?.success) {
+        setStatus('loginStatus', 'error', 'Login failed: ' + (Array.isArray(data.message) ? data.message.join(', ') : data.message));
+        btn.disabled = false; return;
+      }
+    } catch(e1) {}
+
+    // --- Method 2: GET with username/password headers to /api_gsim/v1/auth ---
+    setStatus('loginStatus', 'loading', 'Trying GET header auth...');
+    try {
+      const url = 'https://api.globalsms.io/api_gsim/v1/auth';
+      const proxied = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+      const res2 = await fetch(proxied, {
+        method: 'GET',
+        headers: { 'username': email, 'password': pass, 'accept': '*/*' }
+      });
+      const data2 = await res2.json();
+      if (data2?.data?.access) { handleToken(data2.data.access, 'GET v1/auth'); btn.disabled = false; return; }
+      if (data2?.access) { handleToken(data2.access, 'GET v1/auth'); btn.disabled = false; return; }
+    } catch(e2) {}
+
+    // --- Method 3: POST with URL-encoded body ---
+    setStatus('loginStatus', 'loading', 'Trying form-encoded login...');
+    try {
+      const res3 = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.globalsms.io/api/auth/login'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'accept': '*/*' },
+        body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(pass)}`
+      });
+      const data3 = await res3.json();
+      if (data3?.data?.access) { handleToken(data3.data.access, 'POST form-encoded'); btn.disabled = false; return; }
+      if (data3?.access) { handleToken(data3.access, 'POST form-encoded'); btn.disabled = false; return; }
+    } catch(e3) {}
+
+    setStatus('loginStatus', 'error', 'All login methods failed. Check your email/password and try again.');
+    btn.disabled = false;
+  }
+
+  async function fetchBalance() {
+    if (!TOKEN) return;
+    const area = document.getElementById('balanceArea');
+    area.innerHTML = '<div class="status loading"><span class="spinner"></span><span>Fetching balance...</span></div>';
+
+    try {
+      const res = await proxyFetch('/api/users/me', {
+        headers: { 'Authorization': 'Bearer ' + TOKEN, 'accept': '*/*' }
+      });
+      const data = await res.json();
+      const balance = data.balance ?? data.data?.balance ?? data.credit ?? data.data?.credit ?? '?';
+      const currency = data.currency ?? 'USD';
+      area.innerHTML = `
+        <div class="balance-display">
+          <div class="balance-amount">$${parseFloat(balance || 0).toFixed(4)}</div>
+          <div class="balance-label">Account Balance (${currency})</div>
+        </div>
+        <button class="btn-secondary" onclick="fetchBalance()">Refresh</button>
+      `;
+    } catch (e) {
+      area.innerHTML = `<div class="status error"><div class="dot red"></div><span>Could not fetch balance: ${e.message}</span></div><button class="btn-secondary" onclick="fetchBalance()">Retry</button>`;
+    }
+  }
+
+  async function fetchApps() {
+    if (!TOKEN) return;
+    const btn = document.getElementById('fetchAppsBtn');
+    btn.disabled = true;
+    setStatus('appsStatus', 'loading', 'Fetching apps and prices...');
+    document.getElementById('appsResults').classList.add('hidden');
+
+    // Try multiple possible endpoints
+    const endpoints = [
+      '/api/public/apps',
+      '/api/apps',
+      '/api/public/services',
+      '/api/services',
+      '/api/numbers/apps',
+    ];
+
+    let data = null;
+    for (const ep of endpoints) {
+      try {
+        const res = await proxyFetch(ep, {
+          headers: { 'Authorization': 'Bearer ' + TOKEN, 'accept': '*/*' }
+        });
+        if (res.ok) {
+          data = await res.json();
+          if (data && (Array.isArray(data) || (data.data && Array.isArray(data.data)) || data.success)) break;
+        }
+      } catch {}
+    }
+
+    if (!data) {
+      setStatus('appsStatus', 'error', 'Could not fetch apps. All endpoints failed.');
+      btn.disabled = false;
+      return;
+    }
+
+    const apps = Array.isArray(data) ? data : (data.data || data.apps || data.services || []);
+    allAppsData = apps;
+
+    // Store raw JSON
+    document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
+    document.getElementById('rawResults').classList.remove('hidden');
+    document.getElementById('rawEmpty').classList.add('hidden');
+
+    renderApps(apps);
+    setStatus('appsStatus', 'success', `Loaded ${apps.length} apps`);
+    btn.disabled = false;
+  }
+
+  function renderApps(apps) {
+    const container = document.getElementById('appsResults');
+
+    if (!apps || apps.length === 0) {
+      container.innerHTML = '<div style="color:var(--muted);font-size:0.75rem;text-align:center;padding:20px;">No apps found in response</div>';
+      container.classList.remove('hidden');
+      return;
+    }
+
+    let html = '';
+    apps.forEach(app => {
+      const name = app.name || app.app_name || app.service || app.title || 'Unknown';
+      const uuid = app.uuid || app.app_uuid || app.id || '';
+      const priceSms = app.pay_per_sms_price ?? app.price_per_sms ?? app.sms_price ?? app.price ?? null;
+      const priceDid = app.pay_per_did_price ?? app.price_per_did ?? app.did_price ?? null;
+      const country = app.country || '';
+      const available = app.available_count ?? app.count ?? app.available ?? null;
+
+      html += `
+        <div class="app-item">
+          <div style="flex:1;min-width:0;">
+            <div class="app-name">${name}
+              ${country === 'US' ? '<span class="badge badge-us">US</span>' : ''}
+              ${country === 'CA' ? '<span class="badge badge-ca">CA</span>' : ''}
+            </div>
+            <div class="app-uuid">${uuid}</div>
+            ${available !== null ? `<div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">${available} available</div>` : ''}
+          </div>
+          <div class="price-tag">
+            <div class="price-sms">${priceSms !== null ? '$' + parseFloat(priceSms).toFixed(4) : '—'}</div>
+            <div class="price-did">${priceDid !== null ? 'DID: $' + parseFloat(priceDid).toFixed(4) : ''}</div>
+          </div>
+          <button onclick="document.getElementById('appUuidInput').value='${uuid}';document.querySelector('.card:last-child').scrollIntoView({behavior:'smooth'})" 
+            style="width:auto;padding:4px 8px;font-size:0.6rem;margin:0;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px;cursor:pointer;">USE</button>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    container.classList.remove('hidden');
+  }
+
+  function filterApps() {
+    const search = document.getElementById('searchInput').value.toLowerCase();
+    const country = document.getElementById('countryFilter').value;
+    const filtered = allAppsData.filter(app => {
+      const name = (app.name || app.app_name || app.service || '').toLowerCase();
+      const matchSearch = !search || name.includes(search);
+      const appCountry = app.country || '';
+      const matchCountry = !country || appCountry === country;
+      return matchSearch && matchCountry;
+    });
+    renderApps(filtered);
+  }
+
+  async function fetchVendors() {
+    if (!TOKEN) return;
+    const btn = document.getElementById('fetchVendorsBtn');
+    btn.disabled = true;
+    const container = document.getElementById('vendorsResults');
+    container.innerHTML = '<div class="status loading"><span class="spinner"></span><span>Fetching vendors...</span></div>';
+    container.classList.remove('hidden');
+
+    const endpoints = ['/api/public/vendors', '/api/vendors', '/api/numbers/vendors'];
+    let data = null;
+    for (const ep of endpoints) {
+      try {
+        const res = await proxyFetch(ep, {
+          headers: { 'Authorization': 'Bearer ' + TOKEN, 'accept': '*/*' }
+        });
+        if (res.ok) { data = await res.json(); if (data) break; }
+      } catch {}
+    }
+
+    if (!data) {
+      container.innerHTML = '<div class="status error"><div class="dot red"></div><span>Could not fetch vendors</span></div>';
+      btn.disabled = false;
+      return;
+    }
+
+    const vendors = Array.isArray(data) ? data : (data.data || data.vendors || []);
+    let html = '';
+    vendors.forEach(v => {
+      const name = v.name || v.vendor_name || 'Unknown';
+      const uuid = v.uuid || v.vendor_uuid || v.id || '';
+      const country = v.country || '';
+      html += `
+        <div class="app-item">
+          <div>
+            <div class="app-name">${name}
+              ${country === 'US' ? '<span class="badge badge-us">US</span>' : ''}
+              ${country === 'CA' ? '<span class="badge badge-ca">CA</span>' : ''}
+            </div>
+            <div class="app-uuid">${uuid}</div>
+          </div>
+        </div>
+      `;
+    });
+    container.innerHTML = html || '<div style="color:var(--muted);font-size:0.75rem;padding:10px;">No vendors found</div>';
+    btn.disabled = false;
+  }
+
+  async function checkAvailability() {
+    if (!TOKEN) return;
+    const appUuid = document.getElementById('appUuidInput').value.trim();
+    const country = document.getElementById('checkCountry').value;
+    const payMethod = document.getElementById('checkPayMethod').value;
+    const container = document.getElementById('availResults');
+
+    if (!appUuid) {
+      container.innerHTML = '<div class="status error"><div class="dot red"></div><span>Enter an App UUID</span></div>';
+      return;
+    }
+
+    container.innerHTML = '<div class="status loading"><span class="spinner"></span><span>Checking availability...</span></div>';
+
+    const endpoints = [
+      `/api/public/numbers?app_uuid=${appUuid}&country=${country}&pay_method=${payMethod}`,
+      `/api/numbers?app_uuid=${appUuid}&country=${country}&pay_method=${payMethod}`,
+      `/api/public/availability?app_uuid=${appUuid}&country=${country}`,
+    ];
+
+    let data = null;
+    for (const ep of endpoints) {
+      try {
+        const res = await proxyFetch(ep, {
+          headers: { 'Authorization': 'Bearer ' + TOKEN, 'accept': '*/*' }
+        });
+        if (res.ok) { data = await res.json(); if (data) break; }
+      } catch {}
+    }
+
+    if (!data) {
+      container.innerHTML = '<div class="status error"><div class="dot red"></div><span>No response from API</span></div>';
+      return;
+    }
+
+    const price = data.price ?? data.pay_per_sms_price ?? data.sms_price ?? data.amount ?? null;
+    const count = data.available_count ?? data.count ?? data.available ?? null;
+    const working = data.available !== false && (count === null || count > 0);
+
+    container.innerHTML = `
+      <div class="status ${working ? 'success' : 'error'}">
+        <div class="dot ${working ? 'green' : 'red'}"></div>
+        <span>${working ? '✅ Available' : '❌ Not Available / No numbers'}</span>
+      </div>
+      ${price !== null ? `
+        <div class="balance-display" style="margin-top:10px;">
+          <div class="balance-amount" style="font-size:1.5rem;">$${parseFloat(price).toFixed(4)}</div>
+          <div class="balance-label">${payMethod === 'pay_per_sms' ? 'Per Activation' : 'Per DID (10 days)'} · ${country}</div>
+          ${count !== null ? `<div style="font-size:0.65rem;color:var(--muted);margin-top:4px;">${count} numbers available</div>` : ''}
+        </div>
+      ` : ''}
+      <div style="margin-top:8px;">
+        <div class="section-label">Raw Response</div>
+        <div class="results-area"><pre class="raw-json">${JSON.stringify(data, null, 2)}</pre></div>
+      </div>
+    `;
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-' + name).classList.add('active');
+  }
+
+  // Enter key support
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !TOKEN) doLogin();
+  });
+</script>
+
+</body>
+</html>
