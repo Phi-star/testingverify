@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GlobalSMS Explorer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;800&display=swap');
+  :root {
+    --bg: #0a0a0f; --surface: #111118; --border: #1e1e2e;
+    --accent: #00e5ff; --accent2: #ff6b35; --green: #00ff88;
+    --red: #ff4466; --text: #e0e0f0; --muted: #555570;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--bg); color:var(--text); font-family:'JetBrains Mono',monospace; min-height:100vh; padding:16px; }
+  .header { text-align:center; padding:24px 0 16px; border-bottom:1px solid var(--border); margin-bottom:20px; }
+  .header h1 { font-family:'Syne',sans-serif; font-weight:800; font-size:1.6rem; color:var(--accent); }
+  .header p { color:var(--muted); font-size:0.7rem; margin-top:4px; }
+  .card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+  .card h2 { font-family:'Syne',sans-serif; font-size:0.75rem; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:2px; margin-bottom:12px; }
+  .form-group { margin-bottom:10px; }
+  label { display:block; font-size:0.65rem; color:var(--muted); margin-bottom:4px; text-transform:uppercase; letter-spacing:1px; }
+  input, select { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-family:'JetBrains Mono',monospace; font-size:0.8rem; outline:none; transition:border-color 0.2s; }
+  input:focus, select:focus { border-color:var(--accent); }
+  button { display:block; width:100%; padding:11px; border-radius:8px; border:none; font-family:'Syne',sans-serif; font-weight:700; font-size:0.8rem; cursor:pointer; transition:all 0.2s; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+  .btn-primary { background:var(--accent); color:#000; }
+  .btn-primary:hover { opacity:0.85; }
+  .btn-primary:disabled { opacity:0.4; cursor:not-allowed; }
+  .btn-secondary { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .btn-orange { background:var(--accent2); color:#fff; }
+  .btn-orange:disabled { opacity:0.4; cursor:not-allowed; }
+  .status { display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:8px; font-size:0.72rem; margin-bottom:10px; }
+  .status.success { background:rgba(0,255,136,0.1); border:1px solid rgba(0,255,136,0.3); color:var(--green); }
+  .status.error { background:rgba(255,68,102,0.1); border:1px solid rgba(255,68,102,0.3); color:var(--red); }
+  .status.loading { background:rgba(255,107,53,0.08); border:1px solid rgba(255,107,53,0.2); color:var(--accent2); }
+  .dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+  .dot.green { background:var(--green); box-shadow:0 0 6px var(--green); }
+  .dot.red { background:var(--red); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  .spinner { display:inline-block; width:11px; height:11px; border:2px solid transparent; border-top-color:currentColor; border-radius:50%; animation:spin 0.6s linear infinite; vertical-align:middle; margin-right:5px; }
+  .hidden { display:none !important; }
+  .token-display { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:9px; font-size:0.6rem; color:var(--muted); word-break:break-all; }
+  #debugPanel { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; margin-bottom:14px; }
+  #debugPanel h2 { font-family:'Syne',sans-serif; font-size:0.75rem; font-weight:700; color:#ff6b35; text-transform:uppercase; letter-spacing:2px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; }
+  #debugLog { max-height:320px; overflow-y:auto; background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; }
+  .log-entry { border-bottom:1px solid #1a1a2a; padding:7px 0; }
+  .log-entry:last-child { border-bottom:none; }
+  .log-meta { display:flex; justify-content:space-between; margin-bottom:3px; }
+  .log-label { font-size:0.68rem; font-weight:700; }
+  .log-time { font-size:0.6rem; color:var(--muted); }
+  .log-body { font-size:0.62rem; color:#8080a0; white-space:pre-wrap; word-break:break-all; max-height:120px; overflow-y:auto; line-height:1.5; }
+  .log-req .log-label { color:#7070ff; }
+  .log-res .log-label { color:var(--green); }
+  .log-err .log-label { color:var(--red); }
+  .log-info .log-label { color:var(--accent); }
+  ::-webkit-scrollbar { width:3px; } ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+  .results-area { background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px; max-height:350px; overflow-y:auto; margin-top:10px; }
+  .app-item { border-bottom:1px solid var(--border); padding:9px 0; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .app-item:last-child { border-bottom:none; }
+  .app-name { font-size:0.78rem; font-weight:600; }
+  .app-uuid { font-size:0.58rem; color:var(--muted); margin-top:2px; }
+  .price-sms { font-size:0.85rem; font-weight:700; color:var(--green); text-align:right; }
+  .price-did { font-size:0.62rem; color:var(--muted); text-align:right; }
+  .balance-display { text-align:center; padding:14px; background:var(--bg); border-radius:8px; border:1px solid var(--border); margin-bottom:10px; }
+  .balance-amount { font-family:'Syne',sans-serif; font-size:1.8rem; font-weight:800; color:var(--green); }
+  .balance-label { font-size:0.62rem; color:var(--muted); margin-top:3px; }
+  .tab-row { display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap; }
+  .tab { padding:5px 10px; border-radius:6px; font-size:0.65rem; font-weight:600; cursor:pointer; border:1px solid var(--border); color:var(--muted); background:transparent; width:auto; margin-bottom:0; text-transform:none; letter-spacing:0; }
+  .tab.active { background:rgba(0,229,255,0.1); border-color:var(--accent); color:var(--accent); }
+  .tab-content { display:none; } .tab-content.active { display:block; }
+  .filter-row { display:flex; gap:8px; margin-bottom:10px; }
+  .filter-row input { flex:1; } .filter-row select { width:90px; flex-shrink:0; }
+  .raw-json { font-size:0.62rem; color:#7070a0; white-space:pre-wrap; word-break:break-all; line-height:1.5; }
+  .clear-btn { background:transparent; border:1px solid #333; color:var(--muted); font-size:0.6rem; padding:3px 8px; border-radius:4px; cursor:pointer; width:auto; margin:0; font-family:'JetBrains Mono',monospace; text-transform:none; letter-spacing:0; }
+  .server-badge { display:inline-block; background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.2); color:var(--accent); font-size:0.6rem; padding:2px 8px; border-radius:4px; margin-left:8px; vertical-align:middle; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ GlobalSMS Explorer</h1>
+  <p>Login · Check Prices · Browse Numbers</p>
+</div>
+
+<!-- SERVER CONFIG -->
+<div class="card">
+  <h2>⚙️ Server Config</h2>
+  <div class="form-group">
+    <label>Backend URL <span class="server-badge" id="serverBadge">not set</span></label>
+    <input type="text" id="serverInput" placeholder="https://your-app.herokuapp.com" />
+  </div>
+  <button class="btn-secondary" onclick="saveServer()">Save Server URL</button>
+</div>
+
+<!-- LOGIN -->
+<div class="card">
+  <h2>🔐 Login</h2>
+  <div id="loginStatus" class="status loading hidden"><span class="spinner"></span><span id="loginStatusText">...</span></div>
+  <div class="form-group"><label>Email</label><input type="email" id="emailInput" placeholder="your@email.com"/></div>
+  <div class="form-group"><label>Password</label><input type="password" id="passwordInput" placeholder="••••••••"/></div>
+  <button class="btn-primary" id="loginBtn" onclick="doLogin()">Login & Get Token</button>
+  <div id="tokenSection" class="hidden">
+    <div class="status success"><div class="dot green"></div><span id="loginSuccessText">Logged in!</span></div>
+    <label style="margin-bottom:4px;">Token (truncated)</label>
+    <div class="token-display" id="tokenDisplay"></div>
+  </div>
+</div>
+
+<!-- DEBUG LOG -->
+<div id="debugPanel">
+  <h2>🖥️ Debug Log <button class="clear-btn" onclick="clearLogs()">Clear</button></h2>
+  <div id="debugLog"><div style="color:var(--muted);font-size:0.7rem;text-align:center;padding:16px;">Logs will appear here when you login</div></div>
+</div>
+
+<!-- MAIN (hidden until logged in) -->
+<div id="mainExplorer" class="hidden">
+
+  <div class="card">
+    <h2>💰 Balance</h2>
+    <div id="balanceArea"><button class="btn-secondary" onclick="fetchBalance()">Check Balance</button></div>
+  </div>
+
+  <div class="card">
+    <h2>📋 Apps & Pricing</h2>
+    <div class="tab-row">
+      <button class="tab active" onclick="switchTab(this,'tab-apps')">All Apps</button>
+      <button class="tab" onclick="switchTab(this,'tab-vendors')">Vendors</button>
+      <button class="tab" onclick="switchTab(this,'tab-raw')">Raw JSON</button>
+    </div>
+    <div class="tab-content active" id="tab-apps">
+      <div class="filter-row">
+        <input type="text" id="searchInput" placeholder="Search app..." oninput="filterApps()"/>
+        <select id="countryFilter" onchange="filterApps()"><option value="">All</option><option value="US">🇺🇸 US</option><option value="CA">🇨🇦 CA</option></select>
+      </div>
+      <button class="btn-primary" onclick="fetchApps()" id="fetchAppsBtn">Load Apps & Prices</button>
+      <div id="appsStatus" class="hidden"></div>
+      <div id="appsResults" class="results-area hidden"></div>
+    </div>
+    <div class="tab-content" id="tab-vendors">
+      <button class="btn-secondary" onclick="fetchVendors()">Load Vendors</button>
+      <div id="vendorsResults" class="results-area hidden"></div>
+    </div>
+    <div class="tab-content" id="tab-raw">
+      <div id="rawEmpty" style="color:var(--muted);font-size:0.75rem;">Load Apps first</div>
+      <div id="rawResults" class="results-area hidden"><pre class="raw-json" id="rawJson"></pre></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🔍 Check Number Availability</h2>
+    <div class="form-group"><label>App UUID</label><input type="text" id="appUuidInput" placeholder="Paste app_uuid here"/></div>
+    <div class="form-group"><label>Country</label><select id="checkCountry"><option value="US">🇺🇸 United States</option><option value="CA">🇨🇦 Canada</option></select></div>
+    <div class="form-group"><label>Pay Method</label><select id="checkPayMethod"><option value="pay_per_sms">Pay Per Activation</option><option value="pay_per_did">Pay Per DID (10 days)</option></select></div>
+    <button class="btn-orange" onclick="checkAvailability()">Check Availability & Price</button>
+    <div id="availResults" style="margin-top:10px;"></div>
+  </div>
+
+</div>
+
+<script>
+  // ── SERVER CONFIG ─────────────────────────────────────
+  let SERVER = localStorage.getItem('gsms_server') || '';
+  let TOKEN = '';
+  let allAppsData = [];
+
+  function saveServer() {
+    SERVER = document.getElementById('serverInput').value.trim().replace(/\/$/, '');
+    localStorage.setItem('gsms_server', SERVER);
+    document.getElementById('serverBadge').textContent = SERVER ? new URL(SERVER).hostname : 'not set';
+    addLog('info', 'Server URL saved', SERVER);
+  }
+
+  // Restore on load
+  window.addEventListener('DOMContentLoaded', () => {
+    if (SERVER) {
+      document.getElementById('serverInput').value = SERVER;
+      try { document.getElementById('serverBadge').textContent = new URL(SERVER).hostname; } catch(e) {}
+    }
+  });
+
+  function proxyUrl(path) {
+    if (!SERVER) { alert('Set your Backend URL first (top card)'); throw new Error('No server URL configured'); }
+    return SERVER + path;
+  }
+
+  // ── LOGGING ──────────────────────────────────────
+  const logs = [];
+
+  function addLog(type, label, detail) {
+    const time = new Date().toLocaleTimeString();
+    const body = typeof detail === 'object' ? JSON.stringify(detail, null, 2) : String(detail);
+    logs.unshift({ type, label, body, time });
+    renderLogs();
+  }
+
+  function renderLogs() {
+    const el = document.getElementById('debugLog');
+    el.innerHTML = logs.map(l => `
+      <div class="log-entry log-${l.type}">
+        <div class="log-meta">
+          <span class="log-label">[${l.type.toUpperCase()}] ${l.label}</span>
+          <span class="log-time">${l.time}</span>
+        </div>
+        <div class="log-body">${escHtml(l.body)}</div>
+      </div>
+    `).join('');
+  }
+
+  function clearLogs() {
+    logs.length = 0;
+    document.getElementById('debugLog').innerHTML = '<div style="color:var(--muted);font-size:0.7rem;text-align:center;padding:16px;">Cleared</div>';
+  }
+
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ── HELPERS ──────────────────────────────────────
+  function setLoginStatus(type, html) {
+    const el = document.getElementById('loginStatus');
+    el.className = 'status ' + type;
+    el.classList.remove('hidden');
+    el.innerHTML = (type==='loading'?'<span class="spinner"></span>':'<div class="dot '+(type==='success'?'green':'red')+'"></div>') + '<span>' + html + '</span>';
+  }
+
+  function handleToken(token) {
+    TOKEN = token;
+    document.getElementById('tokenDisplay').textContent = TOKEN.substring(0, 100) + '...';
+    document.getElementById('tokenSection').classList.remove('hidden');
+    document.getElementById('loginSuccessText').textContent = 'Logged in successfully';
+    setLoginStatus('success', 'Token received');
+    document.getElementById('mainExplorer').classList.remove('hidden');
+    addLog('info', '✅ TOKEN RECEIVED', 'Token (first 60 chars): ' + token.substring(0,60) + '...');
+  }
+
+  // ── LOGIN ──────────────────────────────────────
+  async function doLogin() {
+    const email = document.getElementById('emailInput').value.trim();
+    const pass  = document.getElementById('passwordInput').value.trim();
+    if (!email || !pass) { setLoginStatus('error', 'Enter email and password'); return; }
+
+    const btn = document.getElementById('loginBtn');
+    btn.disabled = true;
+    addLog('info', 'Login attempt started', { email, password: '(hidden)' });
+
+    setLoginStatus('loading', 'Logging in via backend proxy...');
+
+    try {
+      const url = proxyUrl('/proxy/login');
+      addLog('req', 'POST /proxy/login', { url, email, password: '(hidden)' });
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass })
+      });
+
+      const text = await res.text();
+      addLog('res', 'Login response — HTTP ' + res.status, text);
+
+      let data;
+      try { data = JSON.parse(text); } catch(pe) {
+        addLog('err', 'Could not parse JSON response', text);
+        setLoginStatus('error', 'Invalid response from server');
+        btn.disabled = false; return;
+      }
+
+      // Try common token locations
+      const token = data?.data?.access || data?.data?.token || data?.access || data?.token || data?.data?.accessToken || data?.accessToken;
+
+      if (token) {
+        handleToken(token);
+      } else {
+        addLog('err', 'Login failed — no token in response', data);
+        const msg = data?.message || data?.error || 'No token returned';
+        setLoginStatus('error', 'Login failed: ' + msg);
+      }
+    } catch(e) {
+      addLog('err', 'Login request failed', e.message);
+      setLoginStatus('error', 'Request failed: ' + e.message);
+    }
+
+    btn.disabled = false;
+  }
+
+  // ── BALANCE ──────────────────────────────────────
+  async function fetchBalance() {
+    const area = document.getElementById('balanceArea');
+    area.innerHTML = '<div class="status loading"><span class="spinner"></span><span>Fetching...</span></div>';
+    addLog('req', 'GET /proxy/me', { auth: 'Bearer token' });
+    try {
+      const url = proxyUrl('/proxy/me');
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + TOKEN } });
+      const text = await res.text();
+      addLog('res', 'Balance response — HTTP ' + res.status, text);
+      const data = JSON.parse(text);
+      const bal = data?.balance ?? data?.data?.balance ?? data?.credit ?? data?.data?.credit ?? '?';
+      area.innerHTML = `
+        <div class="balance-display">
+          <div class="balance-amount">$${parseFloat(bal||0).toFixed(4)}</div>
+          <div class="balance-label">Account Balance</div>
+        </div>
+        <button class="btn-secondary" onclick="fetchBalance()">Refresh</button>
+      `;
+    } catch(e) {
+      addLog('err', 'Balance fetch failed', e.message);
+      area.innerHTML = '<div class="status error"><div class="dot red"></div><span>' + escHtml(e.message) + '</span></div>';
+    }
+  }
+
+  // ── APPS ──────────────────────────────────────
+  async function fetchApps() {
+    document.getElementById('fetchAppsBtn').disabled = true;
+    const statusEl = document.getElementById('appsStatus');
+    statusEl.className = 'status loading'; statusEl.classList.remove('hidden');
+    statusEl.innerHTML = '<span class="spinner"></span><span>Fetching apps...</span>';
+    document.getElementById('appsResults').classList.add('hidden');
+
+    addLog('req', 'GET /proxy/apps', { auth: 'Bearer token' });
+    try {
+      const url = proxyUrl('/proxy/apps');
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + TOKEN } });
+      const text = await res.text();
+      addLog('res', 'Apps response — HTTP ' + res.status, text.substring(0, 500));
+
+      if (!res.ok) {
+        statusEl.className = 'status error';
+        statusEl.innerHTML = '<div class="dot red"></div><span>Server error ' + res.status + ' — see Debug Log</span>';
+        document.getElementById('fetchAppsBtn').disabled = false; return;
+      }
+
+      const data = JSON.parse(text);
+      const apps = Array.isArray(data) ? data : (data.data || data.apps || data.services || []);
+      allAppsData = apps;
+      document.getElementById('rawJson').textContent = JSON.stringify(data, null, 2);
+      document.getElementById('rawResults').classList.remove('hidden');
+      document.getElementById('rawEmpty').classList.add('hidden');
+      renderApps(apps);
+      statusEl.className = 'status success';
+      statusEl.innerHTML = '<div class="dot green"></div><span>Loaded ' + apps.length + ' apps</span>';
+    } catch(e) {
+      addLog('err', 'Apps fetch failed', e.message);
+      statusEl.className = 'status error';
+      statusEl.innerHTML = '<div class="dot red"></div><span>' + escHtml(e.message) + '</span>';
+    }
+    document.getElementById('fetchAppsBtn').disabled = false;
+  }
+
+  function renderApps(apps) {
+    const el = document.getElementById('appsResults');
+    if (!apps || apps.length === 0) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:0.75rem;text-align:center;padding:16px;">No apps in response</div>';
+      el.classList.remove('hidden'); return;
+    }
+    el.innerHTML = apps.map(app => {
+      const name = app.name||app.app_name||app.service||'Unknown';
+      const uuid = app.uuid||app.app_uuid||app.id||'';
+      const ps   = app.pay_per_sms_price??app.price_per_sms??app.sms_price??app.price??null;
+      const pd   = app.pay_per_did_price??app.price_per_did??null;
+      const cnt  = app.available_count??app.count??null;
+      return `<div class="app-item">
+        <div style="flex:1;min-width:0;">
+          <div class="app-name">${escHtml(name)}</div>
+          <div class="app-uuid">${escHtml(uuid)}</div>
+          ${cnt!==null?`<div style="font-size:0.58rem;color:var(--muted);">${cnt} available</div>`:''}
+        </div>
+        <div>
+          <div class="price-sms">${ps!==null?'$'+parseFloat(ps).toFixed(4):'—'}</div>
+          <div class="price-did">${pd!==null?'DID:$'+parseFloat(pd).toFixed(4):''}</div>
+        </div>
+        <button onclick="document.getElementById('appUuidInput').value='${escHtml(uuid)}'" style="width:auto;padding:4px 7px;font-size:0.58rem;margin:0;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:4px;cursor:pointer;text-transform:none;letter-spacing:0;">USE</button>
+      </div>`;
+    }).join('');
+    el.classList.remove('hidden');
+  }
+
+  function filterApps() {
+    const s = document.getElementById('searchInput').value.toLowerCase();
+    const c = document.getElementById('countryFilter').value;
+    renderApps(allAppsData.filter(a => {
+      const name = (a.name||a.app_name||'').toLowerCase();
+      return (!s||name.includes(s)) && (!c||a.country===c);
+    }));
+  }
+
+  // ── VENDORS ──────────────────────────────────────
+  async function fetchVendors() {
+    const el = document.getElementById('vendorsResults');
+    el.innerHTML = '<div class="status loading"><span class="spinner"></span><span>Loading...</span></div>';
+    el.classList.remove('hidden');
+    addLog('req', 'GET /proxy/vendors', {});
+    try {
+      const url = proxyUrl('/proxy/vendors');
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + TOKEN } });
+      const text = await res.text();
+      addLog('res', 'Vendors response — HTTP ' + res.status, text.substring(0,400));
+      const data = JSON.parse(text);
+      const vendors = Array.isArray(data) ? data : (data.data || data.vendors || []);
+      el.innerHTML = vendors.map(v => `
+        <div class="app-item">
+          <div>
+            <div class="app-name">${escHtml(v.name||'Unknown')}</div>
+            <div class="app-uuid">${escHtml(v.uuid||v.id||'')}</div>
+          </div>
+        </div>
+      `).join('') || '<div style="color:var(--muted);font-size:0.75rem;">No vendors found</div>';
+    } catch(e) {
+      addLog('err', 'Vendors fetch failed', e.message);
+      el.innerHTML = '<div style="color:var(--red);font-size:0.75rem;">Failed — ' + escHtml(e.message) + '</div>';
+    }
+  }
+
+  // ── AVAILABILITY ──────────────────────────────────────
+  async function checkAvailability() {
+    const uuid = document.getElementById('appUuidInput').value.trim();
+    const country = document.getElementById('checkCountry').value;
+    const pm = document.getElementById('checkPayMethod').value;
+    const el = document.getElementById('availResults');
+    if (!uuid) { el.innerHTML = '<div class="status error"><div class="dot red"></div><span>Enter an App UUID</span></div>'; return; }
+    el.innerHTML = '<div class="status loading"><span class="spinner"></span><span>Checking...</span></div>';
+
+    addLog('req', 'GET /proxy/numbers', { app_uuid: uuid, country, pay_method: pm });
+    try {
+      const url = proxyUrl(`/proxy/numbers?app_uuid=${encodeURIComponent(uuid)}&country=${encodeURIComponent(country)}&pay_method=${encodeURIComponent(pm)}`);
+      const res = await fetch(url, { headers: { 'Authorization': 'Bearer ' + TOKEN } });
+      const text = await res.text();
+      addLog('res', 'Numbers response — HTTP ' + res.status, text);
+      const data = JSON.parse(text);
+      const price = data.price??data.pay_per_sms_price??data.sms_price??null;
+      const count = data.available_count??data.count??null;
+      el.innerHTML = `
+        <div class="status ${count>0||count===null?'success':'error'}">
+          <div class="dot ${count>0||count===null?'green':'red'}"></div>
+          <span>${count>0?'✅ Available':'❌ Not available / empty'}</span>
+        </div>
+        ${price!==null?`<div class="balance-display" style="margin-top:8px;"><div class="balance-amount" style="font-size:1.4rem;">$${parseFloat(price).toFixed(4)}</div><div class="balance-label">${pm==='pay_per_sms'?'Per Activation':'Per DID (10 days)'} · ${country}${count!==null?' · '+count+' numbers':''}</div></div>`:''}
+        <div style="margin-top:8px;"><div style="font-size:0.62rem;color:var(--muted);margin-bottom:4px;">RAW RESPONSE</div><div class="results-area"><pre class="raw-json">${escHtml(JSON.stringify(data,null,2))}</pre></div></div>
+      `;
+    } catch(e) {
+      addLog('err', 'Availability check failed', e.message);
+      el.innerHTML = '<div class="status error"><div class="dot red"></div><span>' + escHtml(e.message) + '</span></div>';
+    }
+  }
+
+  // ── TABS ──────────────────────────────────────
+  function switchTab(btn, id) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(id).classList.add('active');
+  }
+
+  document.addEventListener('keydown', e => { if (e.key==='Enter' && !TOKEN) doLogin(); });
+</script>
+</body>
+</html>
